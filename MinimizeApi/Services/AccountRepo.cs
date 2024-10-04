@@ -19,21 +19,35 @@ namespace MinimizeApi.Services
             if (user != null) 
             { 
                 bool verifyPassword = BCrypt.Net.BCrypt.Verify(loginDTO.Password, user.Password);
-                if (verifyPassword) 
+                if (!verifyPassword) 
                 {
                     return new LoginResponse(false, null, "Invalid credentials");
                 }
 
                 string token = GenerateToken(user);
-                return new LoginResponse(true, token, "user does not exist");
+                return new LoginResponse(true, token, "Userlogin successfully");
             }
 
             throw new NotImplementedException();
         }
 
-        public Task<Response> Register(RegisterDTO registerDTO)
+        public async Task<Response> Register(RegisterDTO registerDTO)
         {
-            throw new NotImplementedException();
+            var user = await FindUserByEmail(registerDTO.Email);
+            if ( user != null)
+            {
+                return new Response(false, "User have already registered");
+            }
+            
+            var addUser = mapper.Map<User>(registerDTO);
+            
+            addUser.Password = BCrypt.Net.BCrypt.HashPassword(registerDTO.Password);
+            appDbContext.Users.Add(addUser);
+            await appDbContext.SaveChangesAsync();
+            return new Response(true, "Register account succesfully");
+
+            
+
         }
 
         private async Task<User> FindUserByEmail(string email)

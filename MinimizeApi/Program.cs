@@ -17,6 +17,8 @@ builder.Services.AddDbContext<AppDbContext>(o => o.UseSqlServer(builder.Configur
 builder.Services.AddScoped<IProductRepo, ProductRepo>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddAutoMapper(typeof(MapperProfile));
+builder.Services.AddScoped<IAccountRepo, AccountRepo>();
+builder.Services.AddScoped<IAcountService, AccountService>();   
 
 builder.Services.AddAuthorization();
 
@@ -86,22 +88,41 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseHttpsRedirection();
+
+
+
+//Authentication
+app.MapPost("/register", async (RegisterDTO registerDTO, IAcountService acountService) =>
+{
+    return Results.Ok(await acountService.Register(registerDTO));
+}).AllowAnonymous();
+
+
+
+app.MapPost("/login", async (LoginDTO loginDTO, IAcountService acountService) =>
+{
+    return Results.Ok(await acountService.Login(loginDTO));
+}).AllowAnonymous();
+
 
 app.MapGet("/GetProducts", async (IProductService productService) =>
 {
     return Results.Ok(await productService.GetAll());
-});
+}).RequireAuthorization();
 
 app.MapGet("/GetProduct/{id:int}", async (IProductService productService, int id) =>
 {
     return Results.Ok(await productService.GetById(id));
-});
+}).RequireAuthorization();
 
 app.MapPost("/AddProduct", async (AddRequestDTO addRequestDTO, IProductService productService) =>
 {
     return Results.Ok(await productService.Add(addRequestDTO));
-});
+}).RequireAuthorization();
 
 
 app.MapPost("/UpdateProduct/{id:int}", async (UpdateRequestDTO updateRequestDTO, IProductService productService, int id) =>
@@ -112,7 +133,7 @@ app.MapPost("/UpdateProduct/{id:int}", async (UpdateRequestDTO updateRequestDTO,
 app.MapDelete("/deleteProduct/{id:int}", async (IProductService productService, int id) => 
 {
     return Results.Ok(await productService.Delete(id));
-});
+}).RequireAuthorization();
 
 
 app.Run();
